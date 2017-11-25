@@ -1,0 +1,263 @@
+Como funciona a restauração de um backup full
+
+Quando fazemos um backup full de um banco de dados, estamos, na verdade, criando uma imagem completa dos filegroups usados, ou seja, o
+primário, os secundários (se existirem) e log de transações.
+
+Os filegroups, evidentemente, estão associados aos datafiles do banco e, portanto, eles serão incluídos no backup. Parte do log de 
+transações também será incluída no backup full para manter consistência de transações que estavam abertas ao final da geração do backup.
+
+Então, quando verificarmos o conteúdo de um arquivo de backup, veremos:
+
+Os nomes lógicos de todos datafiles;
+Os nomes físicos destes arquivos;
+O caminho completo onde cada um será restaurado;
+Propriedades físicas (tamanho atual e máximo de cada arquivo);
+Detalhes sobre o conteúdo do backup.
+Estas são as informações que precisamos para restaurar este banco em qualquer outro ambiente.
+
+CREATE DATABASE [meuBD] ON
+    PRIMARY
+        (NAME = N'meuBD_Data' FILENAME = N'C:\teste1\Data\meuBD_Data.mdf',
+         SIZE = 5MB, MAXSIZE = 10MB, FILEGROWTH = 1MB),
+	(NAME = N'meuBD_Data2' FILENAME = N'C:\teste1\Data\meuBD_Data2.mdf',
+         SIZE = 5MB, MAXSIZE = 10MB, FILEGROWTH = 1MB),
+    filegroup [SECONDARY]
+        (NAME = N'meuBD_Data3' FILENAME = N'C:\teste1\Data\meuBD_Data3.ndf',
+         SIZE = 5MB, MAXSIZE = 10MB, FILEGROWTH = 1MB),
+        (NAME = N'meuBD_Data4' FILENAME = N'C:\teste1\Data\meuBD_Data4.ndf',
+         SIZE = 5MB, MAXSIZE = 10MB, FILEGROWTH = 1MB),
+    filegroup [INDEX]
+        (NAME = N'meuBD_Index' FILENAME = N'C:\teste1\Index\meuBD_Index.ndf',
+         SIZE = 5MB, MAXSIZE = 10MB, FILEGROWTH = 1MB)
+    LOG ON
+        (NAME = N'meuBD_Log1' FILENAME = N'C:\teste1\Log\meuBD_Log1.ldf',
+         SIZE = 5MB, MAXSIZE = 10MB, FILEGROWTH = 10%),
+	(NAME = N'meuBD_Log2' FILENAME = N'C:\teste1\Log\meuBD_Log2.ldf',
+         SIZE = 5MB, MAXSIZE = 10MB, FILEGROWTH = 10%)
+
+GO
+
+USE meuBD
+
+GO
+
+CREATE LOGIN [NT SERVICE\MSSQL$SQL2016] FROM WINDOWS;/*WINDOWS_GROUP*/
+
+CREATE LOGIN [meuLoginSQL] WITH PASSWORD = '123DeOliveira4';/*SQL_LOGIN*/
+
+GO
+
+CREATE USER [ServicosAdministrativos] 
+      FOR LOGIN [NT Service\MSSQL$SQL2016] WITH DEFAULT_SCHEMA=[dbo]
+
+CREATE USER [meuLoginSQL] FOR LOGIN [meuLoginSQL] WITH DEFAULT_SCHEMA=[dbo]
+
+GO
+
+
+Script verdadeiro
+
+CREATE DATABASE [meuBD] ON  
+
+PRIMARY 
+   ( NAME = N'meuBD_Data', FILENAME = N'C:\Data\meuBD_Data.mdf' , 
+     SIZE = 500MB , MAXSIZE = 32GB, FILEGROWTH = 10MB ), 
+   ( NAME = N'meuBD_Data2', FILENAME = N'F:\Data\meuBD_Data2.mdf' , 
+     SIZE = 500MB , MAXSIZE = 32GB, FILEGROWTH = 10MB ),
+filegroup [SECONDARY] 
+   ( NAME = N'meuBD_Data3', FILENAME = N'H:\Data\meuBD_Data3.ndf' , 
+     SIZE = 500MB , MAXSIZE = 32GB, FILEGROWTH = 10MB ) ,
+  ( NAME = N'meuBD_Data4', FILENAME = N'F:\Data\meuBD_Data4.ndf' , 
+    SIZE = 500MB , MAXSIZE = 32GB, FILEGROWTH = 10MB ) ,
+filegroup [INDEX] 
+  ( NAME = N'meuBD_Index', FILENAME = N'H:\Index\meuBD_Index.ndf' , 
+    SIZE = 50MB , MAXSIZE = 32GB, FILEGROWTH = 10MB )
+LOG ON 
+  ( NAME = N'meuBD_Log', FILENAME = N'F:\Log\meuBD_Log.ldf' , 
+    SIZE = 50MB , MAXSIZE = 32GB , FILEGROWTH = 10% ),
+  ( NAME = N'meuBD_Log2', FILENAME = N'F:\Log\meuBD_Log2.ldf' , 
+    SIZE = 50MB , MAXSIZE = 32GB , FILEGROWTH = 10%)
+GO
+ 
+USE meuBD
+GO
+
+CREATE LOGIN [NT SERVICE\MSSQL$SQL2016] FROM WINDOWS;/*WINDOWS_GROUP*/
+
+CREATE LOGIN [meuLoginSQL] WITH PASSWORD = '123DeOliveira4';/*SQL_LOGIN*/
+
+GO
+
+CREATE USER [ServicosAdministrativos] 
+      FOR LOGIN [NT Service\MSSQL$SQL2016] WITH DEFAULT_SCHEMA=[dbo]
+CREATE USER [meuLoginSQL] FOR LOGIN [meuLoginSQL] WITH DEFAULT_SCHEMA=[dbo]
+
+GO
+
+
+CREATE LOGIN [meuBDLogin] WITH PASSWORD = '123456'
+CREATE USER [meuBDUsario1] FOR LOGIN [meuBDLogin] WITH DEFAULT_SCHEMA=[dbo]
+
+BACKUP DATABASE [meuBD] TO DISK = 'C:\teste1\Backup\meuBD.bak' WITH INIT
+--WITH INIT SOBRESCREVER O BACKUP ANTERIOR
+
+
+Observe neste script que a base meuBD usa dois datafiles para log de transações e mais cinco datafiles para dados e índices, estes 
+últimos distribuídos em três filegroups: PRIMARY, SECONDARY e INDEX.
+
+Isso permite um controle melhor da utilização dos recursos de disco para cada objeto do banco. Neste exemplo, esta estrutura lógica foi
+criada para que as tabelas pequenas e médias sejam gravadas no filegroup PRIMARY, tabelas grandes (mais de um milhão de registros) 
+destinadas ao SECONDARY e índices (que não sejam clusterizados) gravados no filegroup INDEX.
+
+Note também que o banco usa mais de um datafile nos filegroups mais importantes e que estes datafiles são distribuídos em vários discos 
+diferentes para melhorar as operações de I/O.
+
+Agora é necessário identificar a estrutura dos arquivos contidos no backup. Para isso, vamos usar o comando RESTORE FILELISTONLY, que 
+traz as informações necessárias. 
+
+RESTORE FILELISTONLY FROM DISK =’c:\temp\meuBD.bak’
+
+LogicalName   : meuBD_Data
+PhysicalName  : C:\Data\meuBD_Data.mdf	 
+Type	      : D
+filegroupName : PRIMARY
+Size (GB)     : 0,5 
+MaxSize (GB)  : 32,0
+Field         : 1
+
+LogicalName   : meuBD_Data2
+PhysicalName  : F:\Data\meuBD_Data2.mdf	 
+Type	      : D
+filegroupName : PRIMARY
+Size (GB)     : 0,5 
+MaxSize (GB)  : 32,0
+Field         : 3
+
+LogicalName   : meuBD_Data3
+PhysicalName  : H:\Data\meuBD_Data3.ndf	 
+Type	      : D
+filegroupName : SECONDARY
+Size (GB)     : 0,5 
+MaxSize (GB)  : 32,0
+Field         : 41
+
+LogicalName   : meuBD_Data4
+PhysicalName  : F:\Data\meuBD_Data4.ndf	 
+Type	      : D
+filegroupName : SECONDARY
+Size (GB)     : 0,5 
+MaxSize (GB)  : 32,0
+Field         : 1
+
+LogicalName   : meuBD_INdex
+PhysicalName  : H:\Data\meuBD_Index.ndf	 
+Type	      : D
+filegroupName : INDEX
+Size (GB)     : 0,5 
+MaxSize (GB)  : 32,0
+Field         : 6
+
+LogicalName   : meuBD_Log1
+PhysicalName  : F:\Data\meuBD_Log1.ldf	 
+Type	      : D
+filegroupName : PRIMARY
+Size (GB)     : 0,5 
+MaxSize (GB)  : 32,0
+Field         : 1
+
+LogicalName   : meuBD_Log2
+PhysicalName  : F:\Data\meuBD_Log2.ldf	 
+Type	      : D
+filegroupName : PRIMARY
+Size (GB)     : 0,5 
+MaxSize (GB)  : 32,0
+Field         : 1
+
+
+Agora, temos as informações necessárias para começarmos a restauração. Precisamos, então, redefinir os caminhos para coincidir com os 
+drives existentes no novo servidor. A próxima listagem mostra o comando RESTORE com as devidas adaptações.
+
+USE MASTER 
+GO
+RESTORE DATABASE [meuBD] 
+    FROM  DISK = N'C:\temp\meuBD.bak' 
+    WITH  FILE = 1,  
+    MOVE N'meuBD_Data'  TO N'C:\SQLServer\Data\meuBD_Data.mdf',  
+    MOVE N'meuBD_Data2' TO N'K:\SQLServer\Data\meuBD_Data2.mdf',  
+    MOVE N'meuBD_Data3' TO N'K:\SQLServer\Data\meuBD_Data3.ndf',  
+    MOVE N'meuBD_Data4' TO N'C:\SQLServer\Data\meuBD_Data4.ndf',  
+    MOVE N'meuBD_Index' TO N'K:\SQLServer\Index\meuBD_Index.ndf',  
+    MOVE N'meuBD_Log'   TO N'K:\SQLServer\Log\meuBD_Log.ldf',  
+    MOVE N'meuBD_Log2'  TO N'C:\SQLServer\Log\meuBD_Log2.ldf',  
+    NOUNLOAD,  REPLACE,  STATS = 10
+ GO
+
+
+RESTORE FILELISTONLY FROM DISK = 'C:\teste1\Backup\meuBD.bak'
+
+RESTORE DATABASE [meuBD] FROM DISK = 'C:\teste1\Backup\meuBD.bak' WITH FILE = 1,
+    MOVE N'meuBD_Data' TO N'C:\teste2\Data\meuBD_Data.mdf',
+	MOVE N'meuBD_Data2' TO N'C:\teste2\Data\meuBD_Data2.mdf',
+	MOVE N'meuBD_Data3' TO N'C:\teste2\Data\meuBD_Data3.ndf',
+	MOVE N'meuBD_Data4' TO N'C:\teste2\Data\meuBD_Data4.ndf',
+	MOVE N'meuBD_Index' TO N'C:\teste2\Index\meuBD_Index.ndf',
+	MOVE N'meuBD_Log1' TO N'C:\teste2\Log\meuBD_Log1.ldf',
+	MOVE N'meuBD_Log2' TO N'C:\teste2\Log\meuBD_Log2.ldf',
+	NOUNLOAD, REPLACE, STATS = 10
+
+
+Verificando eventuais problemas com usuários órfãos
+
+O SQL Server, desde suas primeiras versões, trata separadamente os conceitos de logins e usuários de cada banco. No caso de restaurar 
+uma base para uma nova instância, é provável que ororram erros de consistência, ou seja, o banco inclui usuários que podem não ter 
+correspondência com nenhum login da instância. 
+
+Quando se restaura o backup em outra máquina do mesmo domínio, não teremos problema com os usuários associados a logins autenticados 
+pelo WINDOWS. Mas aqueles vinculados a logins com autenticação SQL provavelmente causarão problemas.
+
+
+Para verificar esta questão, executamos o procedimento SP_CHANGE_USERS_LOGIN usando o parâmetro REPORT. 
+
+USE meuBD
+GO
+EXEC SP_CHANGE_USERS_LOGIN 'Report'
+GO
+
+UserName : meuLoginSQL
+UserSID  : 0x504B7022588FED4BBBE7D1414BDE0BCC
+
+
+Como era esperado, não houve nenhum problema com o usuário ServicosAdministrativos, porque este é vinculado a um login do Windows  e estamos trabalhando dentro do mesmo domínio. Mas o usuário meuLoginSQL não encontrou na nova instância um login correspondente e permanecerá desabilitado até que seja resolvido.
+
+
+Para corrigir esta situação, basta executar novamente o procedimento, usando, desta vez, o parâmetro AUTO_FIX. Neste caso, é preciso informar mais três parâmetros: qual usuário será corrigido, qual login será associado a ele (use NULL se for o mesmo nome) e qual a senha desejada.
+
+USE meuBD
+GO
+EXEC SP_CHANGE_USERS_LOGIN 'Auto_fix', 'meuLoginSQL', NULL, '123456'
+GO
+
+
+
+a escolha dos caminhos para restauração de cada datafile não é aleatória. Caso haja possibilidade de alocar estes arquivos em tipos de disco diferentes, como SATA, SSD ou FLASH, por exemplo, é recomendável alocar arquivos de log e de índices nos discos mais rápidos e os dados nos demais.
+
+Outra questão importante: não basta designar a alocação de arquivos com base no espaço disponível nos discos e o tamanho atual dos arquivos. É recomendável basear seu planejamento no tamanho máximo de crescimento destes arquivos.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
