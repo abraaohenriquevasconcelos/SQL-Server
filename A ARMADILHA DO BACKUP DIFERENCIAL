@@ -1,0 +1,75 @@
+Como evitar a armadilha do backup diferencial?
+
+Se o backup diferencial for utilizado para versões anteriores ao SQL Server 2005 realmene não existe saída senão guardar
+bem os backups da política. No caso do SQL Serve 2005 e superiores, existe a opção pouco conhecida chamada COPY_ONLY
+que é perfeita para situações adversas que exijam backup full eventual. Vejamos como ela funciona.
+
+CREATE DATABASE TesteDifCopyOnly
+GO
+USE TesteDifCopyOnly
+CREATE TABLE Letras (Letra CHAR(1))
+
+-- Insere alguns valores
+INSERT INTO Letras VALUES ('A')
+INSERT INTO Letras VALUES ('B')
+INSERT INTO Letras VALUES ('C')
+
+BACKUP DATABASE TesteDifCopyOnly TO DISK = 'C:\testes\teste1\TesteDifCopyOnly01.bak'
+
+INSERT INTO Letras VALUES ('D')
+INSERT INTO Letras VALUES ('E')
+INSERT INTO Letras VALUES ('F')
+
+
+
+--Faz um novo backup full com a opção COPY_ONLY
+BACKUP DATABASE TesteDifCopyOnly TO DISK = 'C:\testes\teste1\TesteDifCopyOnly02.bak' WITH COPY_ONLY
+
+INSERT INTO Letras VALUES ('G')
+INSERT INTO Letras VALUES ('H')
+INSERT INTO Letras VALUES ('I')
+
+BACKUP DATABASE TesteDifCopyOnly TO DISK = 'C:\testes\teste1\TesteDifCopyOnly01.dif' WITH DIFFERENTIAL 
+
+Os comandos abaixo demonstram as marcas LSN desses backups
+
+MARCAS DE LSN DESSES BACKUPS
+
+BACKUP:                FULL01       
+FirstLSN:              20000000022800193
+LastLSN:               20000000030900001
+CheckpointLSN:         20000000022800193
+DatabaseBackupLSN:     0
+
+BACKUP:                FULL02       
+FirstLSN:              20000000032000037
+LastLSN:               20000000033700001
+CheckpointLSN:         20000000032000037
+DatabaseBackupLSN:     20000000022800193
+
+BACKUP:                DIF01       
+FirstLSN:              20000000034000004
+LastLSN:               20000000034300001
+CheckpointLSN:         20000000034000004
+DatabaseBackupLSN:     20000000022800193
+
+O primeiro backup full foi gerado no LSN 20000000022800193 e embora tenha havido um segundo backup full entre o 
+primeiro backup full e o primeiro diferencial, a opção COPY_ONLY não influenciou a referência do backup diferencial.
+Esse ainda referencial o primeiro backup full mesmo havendo um segundo backup full. A opção COPY_ONLY fez o backup 
+"frio" e para o backup diferencial , o segundo backup full nunca existiu não alterando as referências. Assim sendo, o
+primeiro backup full possui as letras A, B e C e o backup diferencial possui as letras D, E, F, G, H, I e o segundo 
+backup full possui as letras A, B, C, D, E e F. 
+
+--Muda o contexto do banco de dados
+USE MASTER
+
+DROP DATABASE TesteDifCopyOnly
+
+--Restaura o primeiro backup full 
+RESTORE DATABASE TesteDifCopyOnly FROM DISK  = 'C:\testes\teste1\TesteDifCopyOnly01.bak' WITH NORECOVERY 
+
+--Restaura o primeiro diferencial
+RESTORE DATABASE TesteDifCopyOnly FROM DISK = 'C:\testes\teste1\TesteDifCopyOnly01.dif'
+
+-- Verifica as letras cadastradas
+SELECT Letra FROM TesteDifCopyOnly.dbo.Letras
