@@ -1,0 +1,53 @@
+O “Buffer Cache Database” não existe, pode ser entendido ou tratado como uma termo ou expressão técnica se comparado 
+com Database Cache existente no Oracle. Na verdade é a forma natural que o SQL Server trabalha para organizar, estruturar
+e armazenar em páginas de dados que compõem os bancos de dados. Algo que pode ocorrer em diversos momentos, tanto na 
+inicialização de uma instância ou servidor SQL Server, como também, quando um banco de dados realiza o alocação de suas 
+páginas de dados em memória.
+
+As páginas de dados são numeradas em sequência, iniciando com zero para a primeira página do arquivo.
+
+O tabamanho padrão de uma página é 8 KB. Isso significa que qualquer banco de dados criado no SQL Server terá 128 
+páginas por megabyte.
+
+Cada página começa com um cabeçalho de 96 bytes usado para armazenar informações de sistema sobre a página. Essas 
+informações incluem o número de página, o tipo de página, a quantidade de espaço livre na página e a ID de unidade de 
+alocação do objeto que possui a página.
+
+Para identificar de forma exclusiva uma página em banco de dados, são necessários ID do arquivo e número de página. Cada
+arquivo em um banco de dados tem número de ID de arquivo exclusivo. 
+
+Para obtermos o "Buffer Cache Database" que atualmente está sendo gerado e consumido pelo nosso SQL Server, vamos fazer
+
+SELECT DB_NAME(dabase_id), COUNT(*)*8/1024.0 AS 'Cached Size (MB)' 
+FROM sys.dm_os_buffer_descriptors WHERE database_id <> 32767 GROUP BY DB_NAME(database_id) 
+ORDER BY 'Cached Size (MB)' DESC
+
+
+CREATE TABLE BufferCacheDatabaseTable(
+	BufferID INT Identity Primary Key Clustered,
+
+	BufferDescription Varchar(50) Default 'Buffer Table',
+
+	BufferDateTime DateTime Default GetDate())
+
+--consultar o quantidade de cache deste Banco
+SELECT DB_NAME(database_id) AS 'Database',
+COUNT(*) * 8 / 1024.0 As 'Cached Size (MB)'
+From sys.dm_os_buffer_descriptors
+Where database_id = DB_ID()
+Group By DB_NAME(database_id)
+
+Insert Into BufferCacheDatabaseTable Default Values
+Go 2000
+
+
+
+Agora vamos consultar as informações sobre as páginas de dados que forma esta tabela, quantidade de páginas de dados 
+utilizadas e total de página de dados. 
+
+SELECT ST.Name AS 'Tabela', SP.rows AS 'Linhas', SA.data_pages AS 'Páginas de Dados', SA.used_pages AS 'Páginas de Dados Utilizadas', 
+SA.total_pages AS 'Total de Páginas de Dados'
+FROM sys.tables ST INNER JOIN sys.partitions SP ON ST.object_id = SP.object_id INNER JOIN sys.allocation_units SA
+ON SA.container_id = SP.partition_id
+
+
