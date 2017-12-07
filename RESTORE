@@ -1,0 +1,125 @@
+CREATE DATABASE [teste3]
+ON  PRIMARY 
+( NAME = N'teste3', FILENAME = N'D:\DATA\teste3.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+LOG ON 
+( NAME = N'teste3_log', FILENAME = N'D:\LOG\teste3_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+
+GO
+USE teste3
+GO
+CREATE TABLE tabela1 (num INT NOT NULL)
+GO
+INSERT INTO tabela1 VALUES (01)
+GO
+INSERT INTO tabela1 VALUES (02)
+GO
+INSERT INTO tabela1 VALUES (03)
+GO
+
+BACKUP DATABASE [teste3] 
+TO  DISK = N'D:\BACKUP\FULL\teste3_07122017.bak' 
+WITH 
+NOFORMAT, NOINIT,  
+NAME = N'teste3-Full Database Backup', 
+SKIP, NOREWIND, NOUNLOAD,  STATS = 5, 
+Compression
+
+GO
+
+INSERT INTO tabela1 VALUES (04)
+GO
+INSERT INTO tabela1 VALUES (05)
+GO
+INSERT INTO tabela1 VALUES (06)
+GO
+
+BACKUP DATABASE  [teste3] TO DISK = 'D:\BACKUP\DIFF\teste3_07122017.dif' WITH DIFFERENTIAL
+GO
+
+RESTORE HEADERONLY FROM DISK = 'D:\BACKUP\FULL\teste3_07122017.bak'
+GO
+RESTORE HEADERONLY FROM DISK = 'D:\BACKUP\DIFF\teste3_07122017.dif'
+GO
+
+
+--BackupName						FirstLSN				LastLSN					CheckpointLSN				DatabaseBackupLSN
+--teste1-Full Database Backup       36000000056000197       36000000066400001       36000000056000197			0
+--teste1_07122017.dif				36000000071200037		36000000074400001		36000000071200037			36000000056000197
+
+--Se for observado a coluna CheckpointLSN do backupfull foi 36000000056000197, ou seja, no LSN 36000000056000197 foi marcado no log de transações que o backup full foi realizado. 
+--A coluna DatabaseBackupLSN do backup diferencial aponta exatamente para esse LSN, o que significa que o backup diferencial é referente ao primeiro backup full e por isso é possível restaurar o backup full e aplicar qualquer o diferencial.
+
+
+CREATE DATABASE [teste4]
+ON  PRIMARY 
+( NAME = N'teste4', FILENAME = N'D:\TEST\teste4.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+LOG ON 
+( NAME = N'teste4_log', FILENAME = N'D:\TEST\teste4_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+
+
+GO
+
+USE [master]
+GO
+CREATE LOGIN [teste4_login_1] WITH PASSWORD=N'123', DEFAULT_DATABASE=[master], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+GO
+USE [teste4]
+GO
+CREATE USER [teste4_user_1] FOR LOGIN [teste4_login_1]
+GO
+USE [teste4]
+GO
+ALTER ROLE [db_datareader] ADD MEMBER [teste4_user_1]
+GO
+USE [teste4]
+GO
+ALTER ROLE [db_datawriter] ADD MEMBER [teste4_user_1]
+GO
+
+
+restore filelistonly from DISK ='D:\BACKUP\FULL\teste3_07122017.bak'
+--DE
+--teste3			D:\DATA\teste3.mdf
+--teste3_log		D:\LOG\teste3_log.ldf
+
+--Para
+--teste4			D:\TEST\teste4.mdf
+--teste4_log		D:\TEST\teste4_log.ldf
+
+
+select * from sys.sysprocesses where dbid = DB_ID('teste4');
+KILL 55
+
+ALTER DATABASE teste4 SET MULTI_USER WITH ROLLBACK IMMEDIATE;
+
+USE [master]
+RESTORE DATABASE [teste4] 
+--FILE=N'teste3', 
+--FILE=N'teste3_log'
+FROM  DISK = N'D:\BACKUP\FULL\teste3_07122017.bak' 
+WITH  
+FILE = 1,  
+MOVE N'teste7' TO N'D:\TEST\teste4.mdf', 
+MOVE N'teste7_log' TO N'D:\TEST\teste4_log.ldf',  
+NOUNLOAD, REPLACE,
+STATS = 5
+
+
+CREATE DATABASE [teste5]
+ON  PRIMARY 
+( NAME = N'teste5', FILENAME = N'D:\TEST2\teste5.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+LOG ON 
+( NAME = N'teste5_log', FILENAME = N'D:\TEST2\teste5_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+
+
+USE [master]
+RESTORE DATABASE [teste5] 
+--FILE=N'teste3', 
+--FILE=N'teste3_log'
+FROM  DISK = N'D:\BACKUP\FULL\teste3_07122017.bak' 
+WITH  
+FILE = 1,  
+MOVE N'teste3' TO N'D:\TEST2\teste5.mdf', 
+MOVE N'teste3_log' TO N'D:\TEST2\teste5_log.ldf',  
+NOUNLOAD, REPLACE, 
+STATS = 5
