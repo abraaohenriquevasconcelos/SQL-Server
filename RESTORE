@@ -121,5 +121,37 @@ WITH
 FILE = 1,  
 MOVE N'teste3' TO N'D:\TEST2\teste5.mdf', 
 MOVE N'teste3_log' TO N'D:\TEST2\teste5_log.ldf',  
+NOUNLOAD, REPLACE, NORECOVERY,
+STATS = 5
+
+USE teste3
+
+select * from teste3.dbo.tabela1;
+
+USE teste5
+GO
+select * from teste5.dbo.tabela1;
+
+ALTER DATABASE teste5 SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+
+USE MASTER
+
+restore filelistonly from DISK ='D:\BACKUP\DIFF\teste3_07122017.dif'
+
+USE [master]
+RESTORE DATABASE [teste5] 
+--FILE=N'teste3', 
+--FILE=N'teste3_log'
+FROM  DISK = N'D:\BACKUP\DIFF\teste3_07122017.dif' 
+WITH  
+FILE = 1,  
+MOVE N'teste3' TO N'D:\TEST2\teste5.mdf', 
+MOVE N'teste3_log' TO N'D:\TEST2\teste5_log.ldf',  
 NOUNLOAD, REPLACE, 
 STATS = 5
+
+Este erro está dizendo que não há nenhuma base de dados no modo no-operational (não-operacional), e, portanto, não foi feita de tal forma que as 
+transações não comitadas (confirmadas) não fossem revertidas. Quando você restaura um backup no modo RESTORE WITH RECOVERY (padrão), indica que o roll forward 
+deve ser realizado somente enquanto o backup FULL for restaurado, ou seja, quando o restore for finalizado nenhum arquivo de LOG ou Differential poderá ser 
+restaurado, pois o arquivo de LOG estará truncado. Ao realizar o restore no modo RESTORE WITH NORECOVERY, após o final do restore do backup FULL o roll forward não 
+será finalizado, assim deixando os arquivos de LOG “abertos” para que mais arquivos de LOG sejam restaurados.
