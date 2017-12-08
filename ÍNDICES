@@ -1,0 +1,154 @@
+O que é e como evitar o Key Lookup e o RID Lookup
+
+Quando é realizada uma consulta em uma tabela, o otimizador de consultas do SQL Server irá determinar qual o melhor
+método de acesso aos dados deacordo com as estatísticas coletadas. Como o índice clustered é a própria tabela, gerando
+um grande volume dedados, geralmente é utilizado o índice não clustered de menor custo para a consulta. Isso pode 
+gerar um problema, pois muitas vezes a query está selecionando colunas onde nem todas estão indexadas, fazendo com que
+seja utilizado um índice não clustered para a busca das informações indexadas (Index Seek NonClustered) e também seja
+utilizado o índice clustered para  retornar as informações restantes, onde o índice não cluster possui um ponteiro para
+a posição exta da informação no índice cluster ou ROWID, caso a tabela não tenha índice cluster).
+
+SELECT nome, idade FROM cliente WHERE nome = 'Antonio Nunes'
+
+---------------------------------               -----------------------------------------------
+ID	NOME(ÍNDICE NONCLUSTERED)		ID(ÍNDICE CLUSTERED)	NOME		  IDADE
+1	Antonio Nunes			-->	1			Antonio Nunes	  43
+2	Maria			       LOOKUP	2			Maria 			
+----------------------------------		------------------------------------------------
+
+Essa operação é chamada de Key Lookup, no caso de tabelas com índice clustered ou RID Lookup (RID = Row ID) para
+tabelas que não possuem índice clustered (chamadas tabelas HEAP) e por gerar 2 operações de leituras pa uma única 
+consulta, deve ser evitada sempre que possível.
+
+
+Key Lookup
+										 --------------------------
+ ------                     ------------			                 |Index Seek (NonClustered)|
+|SELECT| ----------------  |Nested Loops|------------------------------------    |Cost: 50 %		   |
+ ------			   |(Inner Join)|					 --------------------------
+Cost: 0%                   |Cost: 0%    |-----------------------------------
+                            ------------                                   |
+									   |
+									   |		-------------------------
+									    ----------  | Key Lookup (Clustered) |
+											| Cost: 50 %             |
+											--------------------------
+
+RID Lookup
+
+ ------                     ------------			                 |Index Seek (NonClustered)|
+|SELECT| ----------------  |Nested Loops|------------------------------------    |Cost: 50 %		   |
+ ------			   |(Inner Join)|					 --------------------------
+Cost: 0%                   |Cost: 0%    |-----------------------------------
+                            ------------                                   |
+									   |
+									   |		-------------------------
+									    ----------  | RID Lookup (HEAP) 	 |
+											| Cost: 50 %             |
+											-------------------------
+
+
+Para evitar o KeyLookup basta utilizar a técnica de cobrir o índice (Covering index), que consiste em adicionar ao 
+índice NonClustered (INCLUDE) as principais colunas que são utilizadas nas consultas à tabela. Isso faz com que o 
+otimizador de consulta consiga obter todas as informações lendo apenas o índice escolhido, sem precisar ler também
+o índice clustered.
+
+1
+
+Os registros são armazenados em páginas de dados, páginas estas que compõem o que chamamos de pilha, que por sua vez é 
+uma coleção de páginas de dados. Cada página de dados tem seu tamanho definido em até 8 Kb, apresentando um cabeçalho, que
+contém arquivos de links com outras páginas 
+
+2
+
+Os registros de dados não são armazenados em uma ordem específica, e não existe uma
+ordenação sequencial para as páginas de dados. As páginas de dados não estão 
+vinculadas a uma lista, pois implementam diretamente o conceito de pilhas. Quando
+são inseridos registros em uma página e ela se encontra quase cheia, as páginas
+de dados são divididas em um link é estabelecido para marcações e ligações entre
+elas.
+
+3
+
+Para manipular as pilhas, o SQL Server apresenta um mecanismo chamado "IAM"
+(Index Allocation Map)
+
+4
+
+CREATE TABLE tbl_usuario(
+	usr_cpf DECIMAL(10, 0) NOT NULL PRIMARY KEY,
+	usr_nome VARCHAR(50) NOT NULL,
+	usr_telefone VARCHAR(30) NOT NULL
+)
+
+INSERT INTO tbl_usuario VALUES(1,'Abraao', '12987625373')
+INSERT INTO tbl_usuario VALUES(2,'Laura', '12987643373')
+INSERT INTO tbl_usuario VALUES(3,'Denise', '129876264544')
+
+
+O seguinte comando exibe as informações dos mapas, também conhecidos como "IAM"
+
+DBCC CHECKALLOC
+
+Executando o comando DBCC CHECKALLOC, visualizamos as páginas de alocação de 
+índices, quantidade de extensões daquele determinado índice e a qual objeto do 
+nosso banco de dados ele pertence.  
+
+Temos também outro recurso próprio, uma system stored procedure, que nos ajuda
+a verificar índices próprios de uma tabela específica, dentro de um schema. O
+seguinte procedimento nos mostrará índices contidos em nossa tabela.
+
+EXEC SP_HELPINDEX @objname = tbl_usuario
+GO
+
+5
+
+Todos os índices criados em uma base de dados dentro do SQL Server, tem suas
+informações armazenadas em uma tabela chamada SYSINDEXES, que contém informações
+estatísticas, como o número de registros e páginas de dados em cada tabela,
+além de descrever como localizar as informações que são apontadas pelos índices.
+
+Cada tabela possui uma coleção de páginas de dados, cada 
+tabela e índice são identificados de forma exclusiva pela combinação entre 
+coluna identificador (PK, por exemplo) e a coluna identificadora de índices
+(INDID)  
+
+A tabela do sistema sysindexes é o local central para informações vitais sobre
+objetos como entidades e índices destas entidades. Contém informações estatísticas,
+como o número de registros e páginas de dados em cada tabela. Além disso, descre
+como localizar as informações armazenadas em tabela de dados.
+
+Os ponteiros de páginas da tabela sysindexes ancoram todas as coleções de páginas 
+de tabelas e índices. Cada tabela possui uma coleção de páginas de dados, além
+de coleções de páginas adicionais para implementar cada índice definido para a 
+tabela.
+
+Um registro na tabela sysindexes de cada tabela e um índice é identificado de
+forma exclusiva pela combinação entre a coluna identificadora de objetos (id) 
+e a coluna identificadora de índices (indid)
+SELECT *
+FROM sysindexes
+WHERE name = ''
+GO
+
+indid -> identificador de índice na tabela sysindexes
+keys e root -> os campos que guardam dados varbinary e bynari, respectivamente,
+são uma identificação única dos índices que são criados, localização na árvore
+e indicadores para seus dados nas páginas de dados.
+
+
+6
+
+Os índices de agrupamento (Clustered) e sem agrupamento(nonclustered) compartilham a mesma estrutura dentro 
+da árvore B, mas com algumas diferenças: as páginas de dados de um índice de agrupamento são os nós folha da
+estrutura árvore B e os registros são armazenados em ordem sequencial baseada na chave do agrupamento.
+
+Um índice de agrupamento (clusterizado ou ordenado) é como um índice remi
+
+https://www.devmedia.com.br/indices-no-sql-server-parte-2/6202
+
+https://www.devmedia.com.br/indices-no-sql-server/18353
+
+https://www.dirceuresende.com/blog/entendendo-o-funcionamento-dos-indices-no-sql-server/
+
+http://www.dbinternals.com.br/?p=824
