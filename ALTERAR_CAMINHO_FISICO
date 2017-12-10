@@ -1,0 +1,16 @@
+SELECT * FROM sys.master_files
+
+
+SELECT DB_NAME(database_id) AS Banco, name AS Nome_Logico, type_desc AS Tipo, physical_name FROM sys.master_files
+USE MASTER
+GO
+ALTER DATABASE teste7 MODIFY FILE (NAME = teste6, NEWNAME = teste7_data)
+GO
+ALTER DATABASE teste7 MODIFY FILE (NAME = teste6_log, NEWNAME = teste7_log)
+GO
+
+
+ALTER DATABASE teste7 MODIFY FILE (NAME = teste7_data, FILENAME = 'D:\TEST\teste7.mdf')
+ALTER DATABASE teste7 MODIFY FILE (NAME = teste7_log, FILENAME = 'D:\TEST\teste7_log.ldf')
+
+SELECT file_id, name, type_desc, physical_name, size FROM sys.database_files
