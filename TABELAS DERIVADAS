@@ -1,0 +1,10 @@
+Tabelas derivadas são tabelas virtuais montadas em tempo de execução. Elas são definidas na cláusula FROM de outra consulta, pois 
+sua existência atribui-se a consulta externa, logo após ela ter sido concluída(a consulta externa), a tabela derivada desaparece. 
+
+
+select id_venda, empresa, data_venda
+from (select Orders.OrderID as id_venda, Customers.CompanyName as empresa, 
+Orders.OrderDate as data_venda from 
+Orders inner join Customers on Orders.CustomerID = Customers.CustomerID 
+where Customers.CustomerID = 'BLAUS') AS tbl_derivada group by tbl_derivada.data_venda, 
+tbl_derivada.empresa, tbl_derivada.id_venda
