@@ -1,0 +1,26 @@
+SELECT rtrim(sd.name) as DBName,
+
+             rtrim(saf.name) AS FileName,
+
+             rtrim(saf.filename) FilePath,
+           
+			
+			CASE
+
+            WHEN cast(growth as int) < 100 then cast(growth as varchar) + '%'  
+            when (saf.growth*8)/ 1024 > 0 then cast((saf.growth*8)/ 1024 as varchar) + 'MB'
+            
+            end AS GROWTH
+
+ FROM master..sysaltfiles saf Inner Join master..sysdatabases sd
+
+                                                     On saf.dbid = sd.dbid
+                                                     
+      
+      
+      
+                                                   WHERE rtrim(sd.name) NOT IN ('msdb','Traces','Dataside_Traces')
+                                                   and (saf.growth*8)/ 1024  <> 512
+                                                   
+                                                   
+                                              --     select top 100 * from  master..sysaltfiles 
