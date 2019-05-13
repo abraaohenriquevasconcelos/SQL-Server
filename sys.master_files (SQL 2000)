@@ -1,0 +1,2 @@
+SELECT db_name(db_id()),* 
+FROM dbo.sysfiles
