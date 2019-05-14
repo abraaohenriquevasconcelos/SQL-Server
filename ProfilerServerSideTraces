@@ -1,0 +1,35 @@
+SELECT DatabaseName,  
+HostName,
+ApplicationName,
+LoginName,
+SPID,
+CAST([Duration] / 1000/ 1000.00 AS NUMERIC(15, 2)) as Segundos,
+TextData,
+Reads,
+Writes,
+TextData,
+StartTime,
+EndTime,
+*
+FROM ::fn_trace_gettable('F:\Trace_DTS_DB02_14052019\TracesOnline.trc', DEFAULT)
+where  DatabaseName = 'casabona'
+--where HostName like '%WEB04%'
+order by Duration desc
+
+
+
+SELECT * FROM sys.fn_trace_getinfo(0) --O exemplo a seguir retorna informações sobre todos os rastreamentos ativos.
+
+
+declare @Traceid int
+
+select @Traceid = traceid
+from fn_trace_getinfo (null)
+where cast(value as varchar(100)) like '%TracesOnline%'
+
+--0	Interrompe o rastreamento especificado.
+--1	Inicia o rastreamento especificado.
+--2	Fecha o rastreamento especificado e exclui sua definição do servidor.
+
+exec sp_trace_setstatus  @Traceid ,  @status = 0
+exec sp_trace_setstatus  @Traceid ,  @status = 2
