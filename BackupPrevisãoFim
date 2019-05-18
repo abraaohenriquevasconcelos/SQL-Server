@@ -1,0 +1,14 @@
+--backup_restore_percent
+SELECT		a.session_id [spid],
+			a.status [status],
+			DB_NAME(a.database_id) [database],
+			a.command [comando],
+			a.start_time [inicio],
+			DATEADD(ms,a.estimated_completion_time,GETDATE()) [fim previsto],
+			a.percent_complete [% completo],
+			b.session_id [blocked spid],
+			b.command [blocked command]
+FROM		sys.dm_exec_requests a
+LEFT JOIN	sys.dm_exec_requests b
+ON			a.session_id = b.blocking_session_id
+WHERE		a.command IN ('BACKUP DATABASE','BACKUP LOG','RESTORE DATABASE','RESTORE LOG')
