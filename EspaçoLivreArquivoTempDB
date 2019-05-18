@@ -1,0 +1,16 @@
+USE tempdb
+SELECT		a.name, 
+			a.physical_name, 
+			a.size/128.0/1024.0 size, 
+			a.growth/128.0 growth,
+			(SUM(b.unallocated_extent_page_count)*1.0/128)/1024 free_space
+FROM		sys.master_files a
+INNER JOIN	sys.dm_db_file_space_usage b
+ON			a.database_id = b.database_id
+AND			a.file_id = b.file_id
+WHERE		a.database_id = DB_ID('tempdb')
+AND			a.type_desc = 'ROWS'
+GROUP BY	a.name, 
+			a.physical_name, 
+			a.size/128.0/1024.0, 
+			a.growth/128.0
