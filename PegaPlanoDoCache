@@ -1,0 +1,11 @@
+--SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+ 
+SELECT qp.query_plan, query_hash, qt.text, QS.*
+ 
+FROM sys.dm_exec_query_stats qs
+ 
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) qt
+ 
+CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) qp
+ 
+where QT.text LIKE '%spr_fecha_ordem_producao%'
