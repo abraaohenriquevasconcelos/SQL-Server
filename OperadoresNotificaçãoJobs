@@ -1,0 +1,2 @@
+select SUSER_NAME(owner_sid),b.name, b.email_address,a.* 
+from msdb..sysjobs a inner join msdb..sysoperators  b on a.notify_email_operator_id = b.id
