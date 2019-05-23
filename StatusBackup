@@ -1,0 +1,21 @@
+--STATUS DE BACKUPS
+SELECT		@@SERVERNAME server_name,
+			a.name database_name,
+			CASE WHEN ISNULL(b.backup_start_date,0)=0 THEN 'BACKUP FAILED' ELSE 'BACKUP OK' END status_backup,
+			b.backup_start_date,
+			CONVERT(TIME,DATEADD(ms,DATEDIFF(ms,b.backup_start_date,b.backup_finish_date),0)) [backup duration],
+			c.physical_device_name,
+			'BACKUP DATABASE ' + a.name + ' TO DISK = N''' + c.physical_device_name + '''' + CHAR(10) +
+			'WITH COPY_ONLY, FORMAT, CHECKSUM, COMPRESSION, MAXTRANSFERSIZE = 2097152, BUFFERCOUNT=50, BLOCKSIZE =8192, NAME = N''' + c.physical_device_name + '''' + CHAR(13) + CHAR(10) + 'GO' + CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) + 
+			'RESTORE VERIFYONLY FROM DISK = N''' + c.physical_device_name + '''' +
+			'WITH NOUNLOAD, STATS = 1, MAXTRANSFERSIZE = 2097152, BUFFERCOUNT=50, BLOCKSIZE =8192' + CHAR(10) + 'GO' [script backup],
+			'RESTORE DATABASE ' + a.name + ' FROM DISK = N''' + c.physical_device_name + '''' + CHAR(10) +
+			'WITH REPLACE, NOUNLOAD, STATS = 1, MAXTRANSFERSIZE = 2097152, BUFFERCOUNT=50, BLOCKSIZE =8192' [script restore]
+FROM		sys.databases a
+LEFT JOIN	msdb.dbo.backupset b
+ON			b.database_name = a.name
+AND			b.backup_start_date >= GETDATE()-4 --Busca a data do Backup no caso ontem
+AND			b.type = 'D'
+LEFT JOIN	msdb.dbo.backupmediafamily c
+ON			b.media_set_id = c.media_set_id
+WHERE		a.database_id > 4
