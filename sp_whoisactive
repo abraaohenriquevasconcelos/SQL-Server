@@ -1,0 +1,19 @@
+sp_whoisactive
+@get_plans =1 ,
+@get_outer_command=1,
+@find_block_leaders =1,
+@output_column_list = '[dd hh:mm:ss.mss],
+[login_name],
+[database_name],
+[host_name],
+[program_name],
+[blocked_session_count],
+[open_tran_count],
+[session_id],
+[blocking_session_id],
+[wait_info],
+[status],
+[sql_text],
+[sql_command],[CPU],[tempdb_allocations],[tempdb_current],[reads], [writes],[used_memory]',
+
+@sort_order = '[blocked_session_count] DESC'
