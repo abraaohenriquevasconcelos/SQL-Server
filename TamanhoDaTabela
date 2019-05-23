@@ -1,0 +1,36 @@
+EXEC sp_spaceused [TGEN_NFELOT]
+
+--select 702704 /1024 as index_size
+
+--select 11940992 /1024 as data
+
+--select 12649792 / 1024 as reserved
+
+
+
+SELECT DISTINCT
+    DS.name  FILEGROUP_NAME,
+    O.name  [TABLE],
+    DB.physical_name  ARQUIVO,
+	A.total_pages Total_Paginas ,
+    P.rows Total_Registro
+FROM
+    sys.objects O
+    INNER JOIN sys.partitions P ON O.object_id = P.object_id
+    INNER JOIN sys.allocation_units A ON A.container_id = P.hobt_id
+    INNER JOIN sys.tables T ON O.object_id = T.object_id
+    INNER JOIN sys.data_spaces DS ON DS.data_space_id = A.data_space_id
+    INNER JOIN sys.database_files DB ON DB.data_space_id = DS.data_space_id
+WHERE
+    index_id = 1
+	and o.name = 'TGEN_NFELOT'
+
+
+
+
+
+
+	SELECT * FROM  sys.filegroups where name in ('FGOPR','FGIOPR')
+
+
+
