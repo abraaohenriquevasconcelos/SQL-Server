@@ -1,0 +1,29 @@
+SELECT 'isntname =>  [1 = O logon é um usuário ou grupo do Windows] [0 = O logon é um logon do SQL Server.]',
+'isntgroup => [1 = O logon é um grupo do Windows.]',
+'isntuser => [1 = O logon é um usuário do Windows.]'
+
+go
+
+select
+b.name as '(ROLE) Name',
+b.type_desc as '(ROLE) type_desc',
+c.name as '(USER) Name',
+c.type_desc as '(USER)type_desc',
+c.default_schema_name as'(USER)default_schema_name',
+c.create_date as '(USER)create_date ',
+c.sid as '(USER)sid',
+c.authentication_type_desc as '(USER)Authentication_type_desc',
+d.sid as '(LOGIN ASSOCIATED)sid',
+d.createdate as '(LOGIN ASSOCIATED)createdate',
+d.name as '(LOGIN ASSOCIATED)name',
+d.loginname as '(LOGIN ASSOCIATED)loginname',
+d.denylogin as '(LOGIN ASSOCIATED)denylogin',
+d.hasaccess as '(LOGIN ASSOCIATED)hasaccess',
+d.isntname as '(LOGIN ASSOCIATED)isntname',
+d.isntgroup as '(LOGIN ASSOCIATED)isntgroup',
+d.isntuser as '(LOGIN ASSOCIATED) isntuser',
+d.sysadmin as '(LOGIN ASSOCIATED)sysadmin'
+from sys.database_role_members a
+inner join sys.database_principals b on a.role_principal_id = b.principal_id
+inner join sys.database_principals c on a.member_principal_id = c.principal_id
+inner join sys.syslogins d ON c.sid = d.sid
