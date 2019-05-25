@@ -1,0 +1,1 @@
+EXEC xp_readerrorlog 0, 1, N'kill', NULL, NULL, NULL, N'DESC'
