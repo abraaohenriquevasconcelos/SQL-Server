@@ -1,0 +1,15 @@
+Create Table #tmp
+
+(dbname varchar(100), RecoveryModel sql_variant)
+
+INSERT INTO #tmp
+
+EXEC sp_msforeachdb '
+
+SELECT ''?'', DATABASEPROPERTYEX(''?'', N''RECOVERY'')
+
+'
+
+Select * from #tmp
+
+Drop Table #tmp
