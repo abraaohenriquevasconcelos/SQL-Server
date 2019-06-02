@@ -49,3 +49,32 @@ GROUP BY DatabaseName
     ,AvgFragmentationInPercent
     
     order by 6 desc
+    
+    
+    
+    
+    
+    
+    
+    Declare @DBINFO Table(DbName NVARCHAR(255),SchemaName NVARCHAR(255), TableName NVARCHAR(255), INDEX_NAME NVARCHAR(255),
+INDEX_SIZE NVARCHAR(255) , EXCLUDE_INDEX NVARCHAR(500))
+INSERT INTO @DBINFO
+exec sp_msforeachdb '
+use [?]
+SELECT
+DB_NAME(DB_ID()),
+OBJECT_SCHEMA_NAME(i.OBJECT_ID) AS SchemaName,
+OBJECT_NAME(i.OBJECT_ID) AS TableName,
+i.name AS IndexName,
+CONVERT(NVARCHAR(255),((8 * SUM(a.used_pages))/1024)) AS ''Indexsize(MB)'',
+CONVERT(varchar(100), DB_NAME(DB_ID()))+''.''+CONVERT(varchar(50), OBJECT_SCHEMA_NAME(i.OBJECT_ID))+''.''+CONVERT(varchar(200), OBJECT_NAME(i.OBJECT_ID))+''.''+case when i.name is not  NULL then CONVERT(varchar(200), i.name) else '''' end
+FROM sys.indexes AS i
+JOIN sys.partitions AS p ON p.OBJECT_ID = i.OBJECT_ID AND p.index_id = i.index_id
+JOIN sys.allocation_units AS a ON a.container_id = p.partition_id
+
+GROUP BY i.OBJECT_ID,i.index_id,i.name
+ORDER BY 6 desc
+
+
+'
+SELECT * FROM @DBINFO WHERE INDEX_SIZE > 1000 order by INDEX_SIZE desc
