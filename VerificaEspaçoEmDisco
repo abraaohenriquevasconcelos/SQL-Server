@@ -1,0 +1,17 @@
+declare @MB_Free int
+
+declare  @FreeSpace table(
+ Drive char(1), 
+ MB_Free int)
+
+
+
+insert into @FreeSpace exec xp_fixeddrives
+
+--select * from @FreeSpace
+
+select @MB_Free = MB_Free from @FreeSpace where Drive = 'C'
+
+-- Free Space on C drive Less than Threshold
+if @MB_Free > 1024
+	print @MB_Free
