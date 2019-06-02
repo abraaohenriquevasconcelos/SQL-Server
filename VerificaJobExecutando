@@ -1,0 +1,11 @@
+if not exists(
+	select  1
+	from msdb.dbo.sysjobactivity a left join msdb.dbo.sysjobhistory b on a.job_history_id = b.instance_id
+	join msdb.dbo.sysjobs c on a.job_id = c.job_id
+	join msdb.dbo.sysjobsteps d on a.job_id = d.job_id and ISNULL(a.last_executed_step_id,0)+1 = d.step_id
+	where a.session_id = (select top 1 session_id from  msdb.dbo.syssessions order by agent_start_date desc)
+	and start_execution_date is not null
+	and stop_execution_date is null
+	and c.name like '%%'
+
+	)
