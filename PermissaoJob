@@ -1,0 +1,5 @@
+use msdb
+go
+
+grant execute on schema::dbo to [domain\username]
+grant execute on schema::sys to [domain\username]
