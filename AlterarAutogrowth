@@ -1,0 +1,19 @@
+select distinct
+'ALTER DATABASE [' + DB_NAME(a.database_id) + '] MODIFY FILE ( NAME = '''+ a.name +''', MAXSIZE = UNLIMITED, 
+FILEGROWTH = 524288KB )'
+
+from sys.master_files a inner join sys.databases b on a.database_id = b.database_id
+where
+type_desc = 'LOG'
+AND b.state_desc = 'online'
+
+UNION ALL
+
+select distinct
+'ALTER DATABASE [' + DB_NAME(a.database_id) + '] MODIFY FILE ( NAME = '''+ a.name +''', FILEGROWTH = 524288KB )'
+
+from sys.master_files a inner join sys.databases b on a.database_id = b.database_id
+where
+type_desc = 'ROWS'
+AND b.state_desc = 'online'
+
