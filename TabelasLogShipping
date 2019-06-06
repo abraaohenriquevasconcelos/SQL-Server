@@ -1,0 +1,16 @@
+select * from msdb.dbo.log_shipping_secondary_databases
+
+select * from log_shipping_secondary	 
+
+
+select * from log_shipping_secondary_databases
+
+select * from log_shipping_monitor_secondary
+
+select * from log_shipping_monitor_history_detail
+
+select * from log_shipping_monitor_error_detail
+
+select * from log_shipping_monitor_alert
+
+https://docs.microsoft.com/pt-br/sql/database-engine/log-shipping/log-shipping-tables-and-stored-procedures?view=sql-server-2017
