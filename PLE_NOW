@@ -1,0 +1,4 @@
+select cntr_value as [page life expectancy]
+ from sys.dm_os_performance_counters where object_name like'%Buffer Manager%'
+ and counter_name = 'Page life expectancy'
+ 
