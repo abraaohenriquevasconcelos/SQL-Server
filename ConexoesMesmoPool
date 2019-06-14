@@ -1,7 +1,8 @@
 /*
-Program name, host name, process id and database name are usually good enough to identify connections coming from the same connection pool.
+Program name, host name, process id and database name are usually good enough to
+identify connections coming from the same connection pool.
 
-*/
+
 
 select count(*) as sessions,
          s.host_name,
@@ -13,12 +14,16 @@ select count(*) as sessions,
    group by host_name, host_process_id, program_name, database_id
    order by count(*) desc;
 
-/*
+*/
 
+
+
+
+/*
 This leads me to ask a few more questions about pools with many connections. 
 Given a pool, are there sessions that have been sleeping for a while and, if so, 
 how long have they been sleeping and what was the last SQL statement they executed?
-*/
+
 
 declare @host_process_id int = 18296;
   declare @host_name sysname = N'DESKTOP-VTRNPHA';
@@ -42,3 +47,15 @@ declare @host_process_id int = 18296;
          and s.host_name = @host_name
          and datediff(second, s.last_request_end_time, getdate()) > 60
    order by s.last_request_end_time;
+
+*/
+
+
+/*
+
+         Vendo o que está conectado ao SQL Server e por qual interface do cliente
+	select a.session_id, a.login_name, a.program_name, a.client_interface_name
+	
+	FROM sys.dm_exec_sessions a  JOIN sys.dm_exec_connections b
+	on a.session_id = b.session_id
+*/
