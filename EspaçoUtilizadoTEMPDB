@@ -1,0 +1,49 @@
+IF OBJECT_ID('tempdb..##filespace') IS NOT NULL
+	DROP TABLE ##filespace
+
+CREATE TABLE ##filespace(
+	[nome do banco] VARCHAR(50),
+	[nome lógico] VARCHAR(50),
+	[unidade de disco] CHAR(2),
+	[caminho do arquivo] VARCHAR(300),
+	[tamanho máximo] VARCHAR(20),
+	[auto-crescimento] VARCHAR(20),
+	[tamanho MB] VARCHAR(20),
+	[espaco utilizado] VARCHAR(20)
+)
+
+EXEC sp_MSforeachdb @command1 = 
+'USE ?
+INSERT INTO ##filespace
+SELECT		a.name [nome do banco],
+			b.name [nome lógico],
+			UPPER(LEFT(b.physical_name,2)) [unidade de disco],
+			b.physical_name [caminho do arquivo],
+			CASE b.max_size
+				WHEN -1 THEN ''Ilimitado''
+				ELSE CONVERT(VARCHAR(20),b.max_size/128) + '' MB''
+			END [tamanho maximo],
+			CASE b.is_percent_growth
+				WHEN 1 THEN CONVERT(VARCHAR(3),b.growth/128) + '' %''
+				ELSE CONVERT(VARCHAR(10),b.growth/128) + '' MB''
+			END [auto-crescimento],
+			CONVERT(VARCHAR(20),b.size/128) + '' MB'' [tamanho],
+			CONVERT(VARCHAR(20),FILEPROPERTY(b.name,''SpaceUsed'')/128) + '' MB'' [espaço utilizado]
+FROM		sys.databases a
+INNER JOIN	sys.master_files b
+ON			a.database_id = b.database_id
+WHERE		a.name = ''?'''
+
+--SELECT		a.name [nome do banco],
+--			a.recovery_model_desc [modo de recuperação],
+--			CASE a.is_read_only
+--				WHEN 1 THEN 'Somente Leitura'
+--				ELSE 'Escrita/Leitura'
+--			END [operações permitidas],
+--			a.user_access_desc [modo de acesso]
+--FROM		sys.databases a
+
+SELECT		*
+FROM		##filespace
+WHERE		[nome do banco] = 'tempdb'
+
