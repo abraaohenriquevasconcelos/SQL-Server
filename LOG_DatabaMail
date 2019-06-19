@@ -1,0 +1,1 @@
+SELECT top 200 * FROM msdb.dbo.sysmail_event_log order by log_date desc
