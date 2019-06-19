@@ -1,0 +1,11 @@
+select 
+    o.name, 
+    o.object_id, 
+    case 
+      when p.index_id = 0 then 'Heap'
+      when p.index_id = 1 then 'Clustered Index/b-tree'
+      when p.index_id > 1 then 'Non-clustered Index/b-tree'
+    end as 'Type'
+from sys.objects o
+inner join sys.partitions p on p.object_id = o.object_id
+where name = 'tab_pedido_dw'
