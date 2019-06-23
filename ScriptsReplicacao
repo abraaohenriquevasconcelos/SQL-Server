@@ -1,0 +1,70 @@
+/*
+O MSdistribution_agents -> tabela contém uma linha para cada agente de distribuição em execução no distribuidor local. Esta tabela é armazenada no banco de dados de distribuição.
+O MSdistribution_history -> tabela contém linhas de histórico para os Distribution Agents associados ao distribuidor local. Esta tabela é armazenada no banco de dados de distribuição.
+*/
+
+SELECT 
+	a.id as ID_Distribution_Agent,
+	a.name as Nome_Job_Distribution_Agent,
+	a.publisher_db as Banco_De_Dados_Do_Publicador
+    --a.name PublicationName
+    , a.publication Nome_Publicador,
+    a.subscriber_id as ID_Do_Assinante,
+    a.subscriber_name Nome_Assinante,
+    a.subscriber_db as Banco_De_Dados_Do_Assiannte,
+    a.local_job Indica_Job_Distribuidor_Local,
+    a.job_id ID_Job,
+     ditosu.comments AS MessageText
+    , convert(date,ditosu.[time]) CommandDate
+    --, ditosu.xact_seqno xact_seqno
+    
+   -- , ditosu.error_id 
+FROM MSdistribution_agents a
+    INNER JOIN MSpublications p ON a.publisher_db = p.publisher_db
+        AND a.publication = p.publication
+    INNER JOIN MSdistribution_history ditosu ON ditosu.agent_id = a.id
+-- Apply a filter here can minimize the noise
+
+where ditosu.runstatus = 6
+and ditosu.[time] > dateadd(hh,-2,GETDATE())
+
+group by a.id,a.name,a.publisher_db,a.publication,a.subscriber_id,a.subscriber_name,
+a.subscriber_db,a.local_job,job_id,ditosu.comments,convert(date,ditosu.[time]) 
+ORDER BY a.publication 
+
+
+
+
+****************************************************************************************************************************************
+
+/*
+syspublications -> Contém uma linha para cada publicação definida no banco de dados. Essa tabela é armazenada no banco de dados de publicação.
+syspublications.name -> O nome exclusivo associado com a publicação.
+syspublications.pubid -> A coluna de identidade que fornece um ID exclusivo para a publicação.
+syspublications.status -> 1 = ativo.
+syspublications.snapshot_jobid -> 	A ID da tarefa agendada.
+
+
+*/
+
+select 
+a.pubid as ID_Publicador,
+a.name as Publicador,
+a.status Status_Publicador,
+a.snapshot_jobid Job_Snapshot_Publicador, 
+c.srvname as Nome_Assinante,
+c.dest_db as Banco_De_Dados_Assinante,
+c.status as Status_Assinante,
+c.distribution_jobid as Job_Distribution_Sincronizar_Assinante,
+b.artid as	ID_Artigo,
+b.name as Nome_Associado_Ao_Aritgo,
+b.objid as ID_Tabela_Publicada_Artigo,
+b.pubid as ID_Publicador_Do_Artigo,
+b.dest_table Tabela_Destino_Artigo
+
+from syspublications a inner join sysarticles b on a.pubid = b.pubid 
+inner join syssubscriptions c on c.artid = b.artid
+--where c.srvname = 'PRN-SRVSQL01\VARZEAGRANDE'
+--where a.name like '%pub_dbacesso01%'
+--group by a.name,c.srvname
+order by 1,2
