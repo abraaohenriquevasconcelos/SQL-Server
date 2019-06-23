@@ -1,3 +1,5 @@
+select * from msdb.dbo.log_shipping_primary_databases
+
 select * from msdb.dbo.log_shipping_secondary_databases
 
 select * from log_shipping_secondary	 
