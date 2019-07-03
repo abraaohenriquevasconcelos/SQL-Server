@@ -19,3 +19,8 @@ FROM sys.master_files
 where type_desc = 'LOG'
 order by size_mb desc
 --ORDER BY 1, type_desc DESC, [file_id];
+
+
+
+select @@SERVERNAME,name, recovery_model_desc, state_desc
+from sys.databases
