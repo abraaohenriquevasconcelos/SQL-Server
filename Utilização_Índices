@@ -1,0 +1,46 @@
+Transact-SQL
+SELECT
+    ObjectName = OBJECT_SCHEMA_NAME(idx.object_id) + '.' + OBJECT_NAME(idx.object_id),
+    IndexName = idx.name,
+    IndexType = CASE WHEN is_unique = 1 THEN 'UNIQUE ' ELSE '' END + idx.type_desc,
+    User_Seeks = us.user_seeks,
+    User_Scans = us.user_scans,
+    User_Lookups = us.user_lookups,
+    User_Updates = us.user_updates
+FROM
+    sys.indexes idx
+    LEFT JOIN sys.dm_db_index_usage_stats us ON idx.object_id = us.object_id AND idx.index_id = us.index_id AND us.database_id = DB_ID()
+WHERE
+    OBJECT_SCHEMA_NAME(idx.object_id) != 'sys'
+ORDER BY
+    us.user_seeks + us.user_scans + us.user_lookups DESC
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+SELECT
+    ObjectName = OBJECT_SCHEMA_NAME(idx.object_id) + '.' + OBJECT_NAME(idx.object_id),
+    IndexName = idx.name,
+    IndexType = CASE WHEN is_unique = 1 THEN 'UNIQUE ' ELSE '' END + idx.type_desc,
+    User_Seeks = us.user_seeks,
+    User_Scans = us.user_scans,
+    User_Lookups = us.user_lookups,
+    User_Updates = us.user_updates
+FROM
+    sys.indexes idx
+    LEFT JOIN sys.dm_db_index_usage_stats us ON idx.object_id = us.object_id AND idx.index_id = us.index_id AND us.database_id = DB_ID()
+WHERE
+    OBJECT_SCHEMA_NAME(idx.object_id) != 'sys'
+ORDER BY
+    us.user_seeks + us.user_scans + us.user_lookups DESC
