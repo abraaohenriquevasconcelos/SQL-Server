@@ -9,3 +9,11 @@ FROM       [sys].[dm_exec_procedure_stats] AS [ps]
        CROSS APPLY [sys].[dm_exec_query_plan]([qs].[plan_handle]) AS [qp]
 WHERE   [ps].[database_id] = DB_ID() 
        AND  OBJECT_NAME([ps].[object_id], [ps].[database_id])  = 'TEST'
+
+
+       
+       select object_name(object_id, database_id), * from sys.dm_exec_procedure_stats
+where object_name(object_id, database_id) = 'spr_alteracao_pessoa_rocket'
+
+SELECT * 
+FROM sys.dm_exec_query_plan (0x05001A00A7513C7140010633090000000000000000000000);  
