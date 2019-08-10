@@ -27,3 +27,12 @@ from sys.database_role_members a
 inner join sys.database_principals b on a.role_principal_id = b.principal_id
 inner join sys.database_principals c on a.member_principal_id = c.principal_id
 inner join sys.syslogins d ON c.sid = d.sid
+
+
+
+Usuários do windows
+
+SELECT 'CREATE LOGIN [' + name + '] FROM WINDOWS;' 
+FROM sys.server_principals 
+WHERE type IN ('U', 'G')
+  AND LEFT(name, 4) NOT IN ('NT A', 'NT S');
