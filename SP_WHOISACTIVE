@@ -1,0 +1,14 @@
+sp_whoisactive @get_plans = 1,@get_full_inner_text=1,@get_outer_command=1
+
+
+
+select top 1 * from sys.sysprocesses where spid = 80
+
+
+SELECT hostname, net_library, net_address
+FROM sys.sysprocesses 
+WHERE spid = 80
+
+ SELECT client_net_address,*
+    FROM sys.dm_exec_connections
+    WHERE Session_id = 80;
