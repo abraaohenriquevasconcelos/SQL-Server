@@ -42,3 +42,10 @@ SELECT *
 FROM master.dbo.sysaltfiles
 GO
  
+ 
+ 
+ 
+ SELECT 'SELECT DB_NAME() AS DatabaseName, DATABASEPROPERTYEX('''+name+''', ''Status'') AS DBStatus'
+FROM master.dbo.sysdatabases
+GO
+
