@@ -33,3 +33,27 @@ where cast(value as varchar(100)) like '%TracesOnline%'
 
 exec sp_trace_setstatus  @Traceid ,  @status = 0
 exec sp_trace_setstatus  @Traceid ,  @status = 2
+
+
+
+
+SELECT /*DatabaseName,  
+HostName,
+ApplicationName,
+LoginName,
+SPID,
+CAST([Duration] / 1000/ 1000.00 AS NUMERIC(15, 2)) as Segundos,
+TextData,
+Reads,
+Writes,
+TextData,
+StartTime,
+EndTime,
+*/
+count(*) Total ,LEFT(convert(varchar(max),textdata),66) TextData ,HostName as HostName,ApplicationName as ApplicationName,
+LoginName as LoginName, AVG(CAST([Duration] / 1000/ 1000.00 AS NUMERIC(15, 2))) Avg_Duration_Sec, sum(Reads) AVG_Reads, sum(Writes) AVG_Writes
+FROM Resultado_Chamado_56359
+--where  DatabaseName = ''
+--where HostName like '%%'
+group by LEFT(convert(varchar(max),textdata),66) ,HostName,ApplicationName,LoginName
+--order by Duration desc
