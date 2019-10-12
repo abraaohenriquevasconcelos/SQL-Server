@@ -1,0 +1,46 @@
+--Parte 1
+USE distribution
+GO
+SELECT top 1
+MSre.time,
+MSre.xact_seqno as xact_seqno_MSrepl_errors,
+MSrepl_commands.xact_seqno as xact_seqno_MSrepl_commands,
+MSrepl_commands.command,
+MSdh.comments,
+MSre.error_text,
+    publisher.name [PublisherName], 
+    MSda.publication [PublicationName], 
+    MSda.publisher_db, 
+    subscriber.name [subscriber.name], 
+    MSda.subscriber_db,
+    MSre.error_code
+FROM MSdistribution_history MSdh
+INNER JOIN MSdistribution_agents MSda ON MSdh.agent_id = MSda.id
+INNER JOIN MSrepl_errors MSre ON MSdh.error_id = MSre.id
+INNER JOIN master.sys.servers publisher ON MSda.publisher_id = publisher.server_id
+INNER JOIN master.sys.servers subscriber ON MSda.subscriber_id = subscriber.server_id
+INNER JOIN MSrepl_commands on  MSre.xact_seqno = MSrepl_commands.xact_seqno 
+and MSre.command_id = MSrepl_commands.command_id
+WHERE MSdh.error_id <> 0 and MSda.publication like '%pub_dbname22%'
+order by MSre.time desc
+
+--Parte 2
+use distribution
+go
+SELECT * FROM msrepl_commands
+WHERE xact_seqno = 0x002501B400013BF0012700000000
+AND command_id = 2
+
+
+--Parte 3
+EXEC SP_BROWSEREPLCMDS
+@xact_seqno_start = '0x002501B400013BF00127',
+@xact_seqno_end = '0x002501B400013BF00127',
+@publisher_database_id = 3,
+@article_id = 49,
+@command_id= 2
+
+
+{CALL [sp_MSdel_dbotab_inf_pis_cofins_nota_fiscal] (45,1,618,'2',0,2019-10-09 08:30:00.000,1)}
+
+
