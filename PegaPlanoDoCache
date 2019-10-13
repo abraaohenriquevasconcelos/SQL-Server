@@ -9,3 +9,46 @@ CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) qt
 CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) qp
  
 where QT.text LIKE '%spr_fecha_ordem_producao%'
+
+
+
+
+SELECT TOP 20
+ qp.query_plan,
+ deqs.creation_time,
+ deqs.last_execution_time,
+ deqs.total_worker_time,
+ deqs.total_logical_reads,
+	deqs.execution_count AS TotalExecutionTime
+	--,OBJECT_NAME(objectid) AS ObjectName
+	,QueryText = SUBSTRING(
+		dest.text,
+		deqs.statement_start_offset/2,         
+		(CASE WHEN deqs.statement_end_offset = -1 
+			THEN len(CONVERT(nvarchar(MAX), dest.text)) * 2 
+			ELSE deqs.statement_end_offset 
+			END - deqs.statement_start_offset)/2)	
+	,DatabaseName = db_name(dest.dbid) 
+FROM sys.dm_exec_query_stats AS deqs
+CROSS APPLY sys.dm_exec_sql_text(deqs.sql_handle) AS dest
+CROSS APPLY sys.dm_exec_query_plan(deqs.plan_handle) qp
+ORDER BY deqs.execution_count DESC
+
+
+
+
+SQL Server: Script to find top 20 running query, which are utilizing more CPU
+
+SELECT TOP 20
+	SP.SPID AS ProcessID
+	,SP.CPU AS CPU
+	,EST.text AS QueryText
+	,SP.Open_tran AS IsAnyOpen_Transaction
+	,SP.Status AS StatusText
+	,SP.program_name AS ApplicationName
+	,SP.loginame AS LoginName
+FROM sys.sysprocesses AS SP
+CROSS APPLY sys.dm_exec_sql_text(sql_handle) AS EST  
+WHERE SP.Status = 'runnable'
+ORDER BY SP.CPU DESC
+
