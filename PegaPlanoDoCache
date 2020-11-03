@@ -11,6 +11,31 @@ CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) qp
 where QT.text LIKE '%spr_fecha_ordem_producao%'
 
 
+SELECT --top 5
+	db_name(s3.dbid) as dbname,
+    object_name(s3.objectid,s2.dbid) as obj_name,
+    (SELECT TOP 1 SUBSTRING(s2.text,statement_start_offset / 2+1 ,  
+      ( (CASE WHEN statement_end_offset = -1  
+         THEN (LEN(CONVERT(nvarchar(max),s2.text)) * 2)  
+         ELSE statement_end_offset END)  - statement_start_offset) / 2+1))  AS sql_statement, 
+    s1.creation_time, 
+    last_execution_time,   
+    execution_count,   
+    convert(time(2),dateadd(ms,total_elapsed_time/execution_count/1000.,'19900101'))as  avg_duration,
+    convert(time(2),dateadd(ms,total_worker_time/execution_count/1000.,'19900101')) as avg_work_time,
+    convert(time(2),DATEADD(ms,total_elapsed_time/1000., '19900101')) as total_elapsed_time,
+    convert(time(2),DATEADD(ms,total_worker_time/1000., '19900101')) total_worker_time,  
+    total_physical_reads,       
+    total_logical_writes,  
+    s3.query_plan ,
+    plan_handle
+	--cast(s3.query_plan as xml) query_plan
+FROM sys.dm_exec_query_stats AS s1  
+CROSS APPLY sys.dm_exec_sql_text(sql_handle) AS s2   
+outer apply sys.dm_exec_text_query_plan (plan_handle, statement_start_offset, statement_end_offset) s3
+where
+	s3.objectid =  2126890894
+
 
 
 SELECT TOP 20
